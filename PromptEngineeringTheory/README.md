@@ -62,11 +62,6 @@ A prompt is made of:
 3. **Input Data** → The actual content (text, image, etc.).  
 4. **Output Indicator** → The format or type of result you want.  
 
----
-
-### 📂 Suggested Repo Structure
-```
-prompt-engineering/
 │── README.md   # Main notes (theory + examples)
 │── images/     # Store handwritten reference images
 │── examples/   # Code or JSON prompt examples
