@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "langgraph-course-poetry"
+version = "0.1.0"
+description = ""
+authors = ["Nikhilsalwe <salwenikhil0724@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+langchain = "^0.3.27"
+langchain-google-genai = "^2.1.10"
+python-dotenv = "^1.1.1"
+black = "^25.1.0"
+isort = "^6.0.1"
+langchain-tavily = "^0.2.11"
+langchain-community = "^0.3.29"
+tavily-python = "^0.7.11"
+langgraph = "^0.6.6"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

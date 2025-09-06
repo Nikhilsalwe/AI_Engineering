@@ -1,0 +1,122 @@
+
+Line-by-Line Explanation of ReAct Agent with LangGraph
+
+======================================================
+Think of this code as building a "robot helper" (Agent) that can do reasoning, 
+decide if it needs tools, use tools, and then answer questions. We'll walk through 
+the three files step by step.
+
+------------------------------------------------------
+main.py - Graph Configuration and Execution
+------------------------------------------------------
+1. from dotenv import load_dotenv
+   - Loads secret keys (like Google API keys) from a .env file.
+
+2. from langchain_core.messages import HumanMessage
+   - Lets us create human messages like: "What is the temperature in Tokyo?"
+
+3. from langgraph.graph import MessagesState, StateGraph, END
+   - MessagesState: A box that holds all the conversation messages.
+   - StateGraph: A flowchart builder where we design how the robot thinks.
+   - END: A signal that says "we are done".
+
+4. from nodes import run_agent_reasoning, tool_node
+   - Imports custom logic: one for reasoning (thinking) and one for tools.
+
+5. should_continue(state: MessagesState)
+   - Checks if the last message asked for a tool (like search or triple).
+   - If NO tool is needed → go to END.
+   - If a tool IS needed → go to ACT (tool step).
+
+6. flow = StateGraph(MessagesState)
+   - Start building our flowchart with messages as state.
+
+7. flow.add_node(AGENT_REASON, run_agent_reasoning)
+   - Add a thinking step called "agent_reason".
+
+8. flow.set_entry_point(AGENT_REASON)
+   - First step is always reasoning.
+
+9. flow.add_node(ACT, tool_node)
+   - Add a step where tools get called.
+
+10. flow.add_conditional_edges(AGENT_REASON, should_continue, { END: END, ACT: ACT })
+    - After reasoning, check if tools are needed. Jump accordingly.
+
+11. flow.add_edge(ACT, AGENT_REASON)
+    - After tools are used, go back to reasoning (to reflect on results).
+
+12. app = flow.compile()
+    - Compile the flowchart into a runnable app.
+
+13. app.get_graph().draw_mermaid_png(output_file_path="flow.png")
+    - Draws the flowchart into a PNG file called flow.png.
+
+14. if __name__ == "__main__":
+       res = app.invoke({"messages": [HumanMessage(content="What is the temperature in Tokyo? List it and then triple it")]})
+       print(res["messages"][-1].content)
+    - Actually run the app with a test question.
+    - Output the final answer after reasoning and tool usage.
+
+------------------------------------------------------
+nodes.py - Agent Reasoning and Tools Setup
+------------------------------------------------------
+1. SYSTEM_MESSAGE = "You are a helpful assistant..."
+   - A set of instructions that guides how the robot should behave.
+
+2. def run_agent_reasoning(state: MessagesState) -> MessagesState:
+   - Sends system message + human messages to the LLM (Gemini).
+   - LLM replies with reasoning (maybe asking for a tool call).
+
+3. tool_node = ToolNode(tools)
+   - Special LangGraph node that knows how to call actual tools (search, triple).
+
+------------------------------------------------------
+react.py - Defining Tools and LLM
+------------------------------------------------------
+1. @tool def triple(num: float) -> float:
+   - A tool that takes a number and returns num * 3.
+
+2. tools = [TavilySearch(max_results=3), triple]
+   - Two tools available: online search + triple number.
+
+3. llm = ChatGoogleGenerativeAI(...).bind_tools(tools)
+   - Connect Gemini LLM with the tools so it can call them when needed.
+
+------------------------------------------------------
+How Execution Works (Step by Step)
+------------------------------------------------------
+1. User asks: "What is the temperature in Tokyo? List it and then triple it".
+
+2. Flow starts at AGENT_REASON → run_agent_reasoning
+   - LLM thinks: "I need to search for Tokyo temperature".
+   - It requests the search tool.
+
+3. should_continue sees tool request → go to ACT.
+
+4. ACT (tool_node) runs TavilySearch tool → gets temperature.
+
+5. Flow loops back to AGENT_REASON.
+   - LLM thinks again: "Now I need to triple this temperature".
+   - It requests the triple tool.
+
+6. ACT runs triple tool → result is returned.
+
+7. Back to AGENT_REASON one last time.
+   - LLM composes final answer with reasoning + result.
+
+8. END is reached → final message printed.
+
+------------------------------------------------------
+When flow.png is Drawn
+------------------------------------------------------
+- Right before execution, the flow is compiled and drawn.
+- The PNG shows nodes:
+   AGENT_REASON → ACT → AGENT_REASON → END
+- This matches the waterfall diagram you saw in LangSmith.
+
+======================================================
+Simple Analogy:
+- AGENT_REASON = Brain thinking what to do.
+- ACT = Hands using a tool (like calculator or Google).
+- END = Done, give answer.
